@@ -1,7 +1,7 @@
-# Krestianstvo | Core 
+# Krestianstvo | Solid JS
 
-Krestianstvo | Core - is the full-featured implementation of the **[Croquet Application Architecture](https://croquet.io)** in functional reactive paradigm, based on **[SolidJS](https://www.solidjs.com)**. It uses just signals and reactive computations. It's Virtual Time and Reflector are based on **[Virtual World Framework's](https://github.com/virtual-world-framework/vwf)** implementation.
-Krestianstvo is minimal and distributed as a standalone ESM module to be bundled withing **[SolidJS](https://www.solidjs.com)** and **[Astro](https://astro.build)** web applications.
+Krestianstvo | Solid JS - is the full-featured implementation of the **[Croquet Application Architecture](https://croquet.io)** in functional reactive paradigm, based on **[SolidJS](https://www.solidjs.com)**. It uses just signals and reactive computations. It's Virtual Time and Reflector are based on **[Virtual World Framework's](https://github.com/virtual-world-framework/vwf)** implementation.
+Krestianstvo is minimal and distributed as a standalone ESM JavaScript module to be bundled within **[SolidJS](https://www.solidjs.com)** and **[Astro](https://astro.build)** web applications.
 
 Demos and examples can be found in **[Krestianstvo | Playground](https://github.com/NikolaySuslov/krestianstvo-playground)**
 

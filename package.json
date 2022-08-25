@@ -15,7 +15,7 @@
       "require": "./dist/krestianstvo.umd.js"
     }
   },
-  "description": "Krestianstvo core",
+  "description": "Krestianstvo | Solid JS",
   "author": "Nikolay Suslov",
   "scripts": {
     "build": "vite build",
