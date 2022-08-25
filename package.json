@@ -1,0 +1,42 @@
+{
+  "name": "krestianstvo",
+  "version": "0.1.0",
+  "files": [
+    "dist"
+  ],
+  "private": false,
+  "sideEffects": false,
+  "type": "module",
+  "main": "dist/krestianstvo.umd.js",
+  "module": "dist/krestianstvo.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/krestianstvo.es.js",
+      "require": "./dist/krestianstvo.umd.js"
+    }
+  },
+  "description": "Krestianstvo core",
+  "author": "Nikolay Suslov",
+  "scripts": {
+    "build": "vite build",
+    "start": "vite",
+    "dev": "vite",
+    "serve": "vite preview"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^3.0.9",
+    "vite-plugin-solid": "^2.3.0",
+    "solid-js": "^1.4.8"
+  },
+  "dependencies": {
+    "alea": "^1.0.1",
+    "qheap": "^1.4.0",
+    "qr-creator": "^1.0.0",
+    "socket.io-client": "^4.5.1",
+    "uuid": "^8.3.2"
+  },
+  "peerDependencies": {
+    "solid-js": "*"
+  }
+}
