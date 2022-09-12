@@ -154,8 +154,7 @@ export const initTime = (socket, storeID, seloData) => {
             if (actionName == 'getState') {
                 console.log("Get State!");
 
-                setStoreVT("syncSig", true);
-
+                setStoreVT("syncSig", true); 
 
                 if (storeNode.localSelos[storeID]) {
                     Object.keys(storeNode.localSelos[storeID]).forEach(key => {
@@ -382,6 +381,8 @@ export const initTime = (socket, storeID, seloData) => {
 
 
         };
+
+        setStoreVT("syncSig", false);
 
         return applicationState
     }

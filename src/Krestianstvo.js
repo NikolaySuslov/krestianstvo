@@ -4,7 +4,7 @@ Copyright (c) 2022 Nikolay Suslov and the Krestianstvo.org project contributors.
 (https://github.com/NikolaySuslov/krestianstvo/blob/master/LICENSE.md)
 */
 
-import { createSignal, createEffect, createMemo, createRoot, getOwner, createReaction, on, DEV } from "solid-js";
+import { createSignal, createEffect, createMemo, createRoot, getOwner, createReaction, on, DEV, untrack } from "solid-js";
 import { createStore, reconcile, produce, unwrap } from "solid-js/store";
 import { connect } from './ReflectorClient'
 
@@ -354,7 +354,7 @@ export const initSelo = (seloID, root) => {
                 let [sig, setSig] = createSignal([])
                 s.actions[actionName] = sig
                 s.setActions[actionName] = setSig
-
+//, { equals: false }
             }))
 
             createEffect(on(node.actions[actionName], (params) => {
@@ -712,7 +712,7 @@ const init = function (obj) {
 
             //Rapier serialization
 
-            if (obj.selo.storeVT.rapierWorld && localSt.data.rapierWorldState) {
+            if (untrack(()=>obj.selo.storeVT.rapierWorld) && localSt.data.rapierWorldState) {
                 console.log("Rapier world serialization: ", obj.selo.storeVT.rapierWorld)
                 let serializeWorld = obj.selo.storeVT.rapierWorld.takeSnapshot()
 
@@ -731,7 +731,7 @@ const init = function (obj) {
                     }
                 })
             );
-            obj.selo.setStoreVT("syncSig", false)
+            //obj.selo.setStoreVT("syncSig", false)
         }
     })
 
