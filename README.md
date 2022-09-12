@@ -11,24 +11,31 @@ Demos and examples can be found in **[Krestianstvo | Playground](https://github.
 
 ## Develop 
 
-1. Run Reflector server
+1. Clone and run Krestianstvo | Core
 
-Public running reflector: **https://time.krestianstvo.org**
+git clone **https://github.com/NikolaySuslov/krestianstvo**  
+npm install  
+npm run dev  
 
-Run your local:    
-git clone **https://github.com/NikolaySuslov/lcs-reflector**
-npm install
-npm run start
+By default Vite will start the development server: http://localhost:5173  
+Copy this link to Web browser
 
-2. Run Krestianstvo | Core
+2. Run local Reflector server or connect to the public one
 
-git clone **https://github.com/NikolaySuslov/krestianstvo**
-npm install
-npm run start
+Public running reflector server address: **https://time.krestianstvo.org**
+
+Run your local server:  
+
+git clone **https://github.com/NikolaySuslov/lcs-reflector**  
+npm install  
+npm run start 
+
+By default Reflector server will start at: http://localhost:3001  
+
 
 ## Build and deploy
 
-The project is using Vite
+The project is using Vite for bundling the Krestianstvo library
 
 npm run build
 
