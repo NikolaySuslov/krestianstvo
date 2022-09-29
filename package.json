@@ -1,6 +1,6 @@
 {
   "name": "krestianstvo",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "files": [
     "dist"
   ],
@@ -25,9 +25,9 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "vite": "^3.1.2",
-    "vite-plugin-solid": "^2.3.3",
-    "solid-js": "^1.5.5"
+    "vite": "^3.1.4",
+    "vite-plugin-solid": "^2.3.9",
+    "solid-js": "^1.5.7"
   },
   "dependencies": {
     "alea": "^1.0.1",
