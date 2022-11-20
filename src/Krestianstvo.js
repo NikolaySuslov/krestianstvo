@@ -118,8 +118,8 @@ export const getSeloByID = (id) => {
 export const createLinkForSelo = (selo, params) => {
 
     let refHost = selo.reflectorHost ? '&r=' + selo.reflectorHost : ""
-    let sp = params.p ? '&p=' + params.p : ""
-    let sd = params.d ? '&d=' + params.d : ""
+    let sp = params?.p ? '&p=' + params.p : ""
+    let sd = params?.d ? '&d=' + params.d : ""
     let link = 
     window.location.origin + '/' + selo.app + //+ window.location.search
     '?k=' + selo.id + refHost + sp + sd
