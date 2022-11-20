@@ -1,6 +1,6 @@
 {
   "name": "krestianstvo",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "files": [
     "dist"
   ],
@@ -26,14 +26,14 @@
   "license": "MIT",
   "devDependencies": {
     "vite": "^3.1.4",
-    "vite-plugin-solid": "^2.3.9",
-    "solid-js": "^1.5.7"
+    "vite-plugin-solid": "^2.4.0",
+    "solid-js": "^1.6.2"
   },
   "dependencies": {
     "alea": "^1.0.1",
     "qheap": "^1.4.0",
     "qr-creator": "^1.0.0",
-    "socket.io-client": "^4.5.2",
+    "socket.io-client": "^4.5.3",
     "uuid": "^9.0.0"
   },
   "peerDependencies": {
