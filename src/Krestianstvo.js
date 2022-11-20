@@ -14,6 +14,8 @@ import { initTime } from './VirtualTime'
 import Alea from 'alea/alea.js'
 import QrCreator from 'qr-creator';
 
+import {serializeGraph} from "./lib/dev"
+
 const validIDChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 const selos = {}
@@ -90,10 +92,11 @@ export const initGlobalConfig = (obj) => {
     })
 }
 
-export const generateURL = (pathname, params, reflectorHost) => {
+export const generateURL = (pathname, params, reflectorHost, parameters) => {
 
     let genID = generateInstanceID();
     let reflector = reflectorHost ? '&r=' + reflectorHost : ""
+    let parametersString = parameters ? '&p=' + parameters : ""
     let urlAddon = '?k=' + genID;
     let state = {
         path: pathname + urlAddon
@@ -101,7 +104,7 @@ export const generateURL = (pathname, params, reflectorHost) => {
     console.log(genID);
     //setSearchParams(genID);
     setTimeout(()=>{
-        window.history.replaceState(state, params, window.location.origin + window.location.pathname + urlAddon + reflector);
+        window.history.replaceState(state, params, window.location.origin + window.location.pathname + urlAddon + reflector + parametersString);
     },0)
 
     return genID
@@ -112,10 +115,14 @@ export const getSeloByID = (id) => {
     return seloDatas[id]
 }
 
-export const createLinkForSelo = (selo) => {
+export const createLinkForSelo = (selo, params) => {
 
     let refHost = selo.reflectorHost ? '&r=' + selo.reflectorHost : ""
-    let link = window.location.origin + '/' + selo.app + '?k=' + selo.id + refHost
+    let sp = params.p ? '&p=' + params.p : ""
+    let sd = params.d ? '&d=' + params.d : ""
+    let link = 
+    window.location.origin + '/' + selo.app + //+ window.location.search
+    '?k=' + selo.id + refHost + sp + sd
     return link
 }
 
@@ -126,9 +133,9 @@ export const createQRCode = (div, link) => {
 
     return QrCreator.render({
         text: link, //props.selo.id,
-        radius: 0.5, // 0.0 to 0.5
-        ecLevel: 'H', // L, M, Q, H
-        fill: '#4F4F4F',//'#536DFE', // foreground color
+        radius: 0, // 0.0 to 0.5
+        ecLevel: 'Q', // L, M, Q, H
+        fill: '#171717',//'#536DFE', // foreground color
         background: null, // color or null for transparent
         size: 64 // in pixels
     }, div);
@@ -871,7 +878,7 @@ const getCircularReplacer = () => {
 
 export const getGraph = (owner) => {
 
-    let devData = DEV.serializeGraph(owner);
+    let devData = serializeGraph(owner) //DEV.serializeGraph(owner);
     let data = JSON.stringify(
         devData,
         //null,

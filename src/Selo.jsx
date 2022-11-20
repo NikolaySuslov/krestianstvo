@@ -32,12 +32,13 @@ export default function Selo(props) {
 
     return (seloProps.deep > deepCount) ? null : (
         <>
+             <Show when={seloProps.selo.storeVT.moniker_}>
                 <Dynamic 
                     {...seloProps}
                     deep={seloProps.deep + 1} 
                     component={props.component ? props.component: props.fallbackWorld}
-                    
                 />
+            </Show> 
         </>
     )
 }
