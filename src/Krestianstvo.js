@@ -229,7 +229,7 @@ export const initSelo = (seloID, root) => {
         syncSig: null,
         syncData: null,
         moniker_: null,
-        rapierWorld: null,
+        rapierWorlds: {},
         stateSynced: false,
         syncReady: [],
         stateNodes: [],
@@ -719,15 +719,16 @@ const init = function (obj) {
 
             //Rapier serialization
 
-            if (untrack(()=>obj.selo.storeVT.rapierWorld) && localSt.data.rapierWorldState) {
-                console.log("Rapier world serialization: ", obj.selo.storeVT.rapierWorld)
-                let serializeWorld = obj.selo.storeVT.rapierWorld.takeSnapshot()
+        let world = untrack(()=>obj.selo.storeVT.rapierWorlds[localSt.data.nodeID])
+          if (world && localSt.data.rapierWorldState) {
+            console.log("Rapier world serialization: ", world)
+            let serializeWorld = world.takeSnapshot()
 
-                obj.setLocal(produce(s => {
-                    s.data.rapierWorldState = serializeWorld
-                    //localSt.rapierWorld = {}
-                }))
-            }
+            obj.setLocal(produce(s => {
+                s.data.rapierWorldState = serializeWorld
+                //localSt.rapierWorld = {}
+            }))
+        }
 
             console.log("Store child: ", obj.nodeID);
             obj.selo.setStoreNode(
