@@ -4,7 +4,7 @@ Copyright (c) 2022 Nikolay Suslov and the Krestianstvo.org project contributors.
 (https://github.com/NikolaySuslov/krestianstvo/blob/master/LICENSE.md)
 */
 
-import { createSignal, createEffect, createMemo, createRoot, getOwner, createReaction, on, DEV, untrack } from "solid-js";
+import { createSignal, createEffect, createMemo, createRoot, getOwner, createReaction, on, DEV, untrack, onCleanup, batch } from "solid-js";
 import { createStore, reconcile, produce, unwrap } from "solid-js/store";
 import { connect } from './ReflectorClient'
 
@@ -14,12 +14,247 @@ import { initTime } from './VirtualTime'
 import Alea from 'alea/alea.js'
 import QrCreator from 'qr-creator';
 
-import {serializeGraph} from "./lib/dev"
+import { where, maybe, optic, values } from 'optics.js/index'
+//import * as R from 'rambda'
+
+import { serializeGraph } from "./lib/dev"
+
 
 const validIDChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 const selos = {}
 const seloDatas = {}
+const allSaved = {}
+
+export const restoreFromFile = (storeID, data, restoreSeloID) => {
+    let seloData = getSeloByID(storeID)
+    const state = data
+
+    if (state) {
+
+        console.log("Set state: ", state);
+
+        if (restoreSeloID) {
+            seloData.setStoreVT("rootNode", restoreSeloID)
+        }
+        let ob = state;
+        seloData.setStoreVT("stateNodes", Object.keys(ob.localStores))
+        console.log("State is: ", ob)
+        // setStoreNode(key)('nodes', reconcile(ob.nodes));
+        //seloData.setStoreNode('clients', reconcile(ob.clients));
+
+        seloData.setStoreNode('restoreDATA', reconcile(ob.localStores))
+        seloData.setStoreVT("syncDataFile", true)
+
+
+        let localSt = state.storesState
+        if (Object.keys(localSt).length !== 0) {
+
+            Object.keys(localSt).forEach(key => {
+
+                let newState = JSON.parse(localSt[key]);
+                seloData.setStoreVT(produce(s => {
+                    let newNodes = s.stateNodes.concat(Object.keys(newState.localStores));
+                    s.stateNodes = newNodes
+                }))
+
+                //seloData.storeNode.localSelos[seloID][key].setStoreNode('clients', reconcile(newState.clients));
+                seloData.storeNode.localSelos[seloID][key].setStoreNode('restoreDATA', reconcile(newState.localStores));
+                seloData.storeNode.localSelos[seloID][key].setStoreVT("syncDataFile", true)
+
+            })
+        }
+        //seloData.setStoreVT("appState", null)
+    }
+
+}
+
+export const restoreFull = (data, rootID, restoreSeloID) => {
+
+    //const stateData = localStorage.getItem("dataFull")
+    const states = JSON.parse(data)
+
+    restoreFromFile(rootID, states.root.root, restoreSeloID)
+
+    Object.entries(states.all).forEach(st => {
+        allSaved[st[0]] = { restoreSeloID: restoreSeloID, state: st[1] }
+    })
+
+}
+
+const replaceSeloIDinState = (r, newMap) => {
+
+    newMap.forEach(n => {
+        const o = optic(values, 'local', 'data', 'properties', maybe('url'))
+            .over(x => x.includes(n.id) ? x.replace(n.id, n.newID) : x, r.st)
+        r.st = o
+    })
+
+    newMap.forEach(n => {
+        const o = optic(values, 'local', 'data',
+            optic(maybe('dynamicSelo'), optic(values)),
+            optic("seloID"))
+            .over(x => x == n.id ? x = n.newID : x, r.st)
+        r.st = o
+    })
+
+}
+
+export const replaceURLs = (states) => {
+
+    let newMap = []
+    let rootID = uuidv4();
+    newMap.push({ id: states.root.root.id, newID: rootID })
+
+    Object.values(states.all).forEach(el => {
+        let newID = uuidv4()
+        newMap.push({ id: el.id, newID: newID })
+    })
+    console.log(newMap);
+
+
+    let allSelos = Object.values(states.root).concat(Object.values(states.all))
+
+    let allNew = {
+        root: {
+            // id: rootID,
+            // localStores: robj,
+            // storesState: states.root.storesState
+        },
+        all: {}
+    }
+
+    allSelos.forEach(el => {
+
+        let a = { st: Object.values(el.localStores) }
+        replaceSeloIDinState(a, newMap)
+
+        let myID = newMap.filter(k => k.id == el.id)[0].newID
+
+        let aobj = {}
+        a.st.forEach(el => { aobj[el.nodeID] = el })
+
+        if (myID == rootID) {
+            allNew.root["root"] = {
+                id: myID,
+                localStores: aobj,
+                storesState: el.storesState
+            }
+        } else {
+            allNew.all[myID] = {
+                id: myID,
+                localStores: aobj,
+                storesState: el.storesState
+            }
+        }
+    })
+
+    console.log(allNew)
+    return allNew
+
+}
+
+export const saveFull = (rootID, setFile) => {
+
+    const all = {}
+    let root = saveToFile(rootID)
+
+    Object.entries(seloDatas).forEach(el => {
+        //console.log(el)
+        if (el[0] !== rootID && el[1]) {
+            let save = saveToFile(el[0])
+            all[el[0]] = save
+        }
+    })
+
+    let file = {
+        root: { "root": root },
+        all: all
+    }
+    console.log("All:", file)
+    // localStorage.setItem("dataFull", JSON.stringify(
+    //     file
+    // ))
+
+    setFile(file)
+
+}
+
+export const saveToFile = (storeID) => {
+
+    let selo = getSeloByID(storeID)
+    console.log("My current Selo: ", selo)
+
+    selo.setStoreNode("localStores", {})
+
+    selo.setStoreVT("syncSig", true);
+
+    if (selo.storeNode.localSelos[storeID]) {
+        Object.keys(selo.storeNode.localSelos[storeID]).forEach(key => {
+            selo.storeNode.localSelos[storeID][key].setStoreVT("syncSig", true);
+        })
+    }
+
+    let res = getState(selo.storeNode, storeID) //getGraph(owner);
+    console.log(res);
+
+    return res
+
+}
+
+const getState = (storeNode, storeID) => {
+
+    const storesState = {}
+
+    if (storeNode.localSelos[storeID]) {
+        Object.keys(storeNode.localSelos[storeID]).forEach(key => {
+            storesState[key] = storeNode.localSelos[storeID][key].storeNode
+            // JSON.stringify(
+            //     storeNode.localSelos[storeID][key].storeNode,
+            //     null,
+            //     //getCircularReplacer(),
+            //     2
+            // )
+        })
+    }
+
+    let loc = Object.assign({}, unwrap(storeNode.localStores))
+    // storeNode.clients.forEach(el => {
+    //     loc[el] = undefined
+    //     delete loc[el]
+    // })
+
+    Object.entries(loc).forEach(el => {
+        storeNode.clients.forEach(cl => {
+            if (el[0].includes(cl)) {
+                loc[el[0]] = undefined
+                delete loc[el[0]]
+            }
+        })
+    })
+
+    const o = optic(values, 'local', 'data',
+        'properties', 'initialized');
+    const newloc = o.over(x => false, Object.values(loc))
+
+    const newMap = {}
+    newloc.forEach(el => {
+        newMap[el.nodeID] = el
+    })
+
+    console.log("initialized", newMap)
+
+    let obj = {
+        "localStores": newMap
+    }
+
+    return {
+        id: storeID,
+        localStores: obj.localStores,
+        storesState: storesState
+    } 
+
+}
 
 export const getSelos = () => {
     return selos
@@ -47,10 +282,7 @@ export const geParentSelo = (id, parents) => {
     } else {
         return false
     }
-
-
 }
-
 
 export const hasParentSelo = (id, findID) => {
 
@@ -92,20 +324,21 @@ export const initGlobalConfig = (obj) => {
     })
 }
 
-export const generateURL = (pathname, params, reflectorHost, parameters) => {
+export const generateURL = (pathname, params, reflectorHost, parameters, urlSource) => {
 
     let genID = generateInstanceID();
     let reflector = reflectorHost ? '&r=' + reflectorHost : ""
     let parametersString = parameters ? '&p=' + parameters : ""
+    let urlSourceString = urlSource ? '&url=' + urlSource : ""
     let urlAddon = '?k=' + genID;
     let state = {
         path: pathname + urlAddon
     }
     console.log(genID);
     //setSearchParams(genID);
-    setTimeout(()=>{
-        window.history.replaceState(state, params, window.location.origin + window.location.pathname + urlAddon + reflector + parametersString);
-    },0)
+    setTimeout(() => {
+        window.history.replaceState(state, params, window.location.origin + window.location.pathname + urlAddon + reflector + parametersString + urlSourceString);
+    }, 0)
 
     return genID
 }
@@ -120,9 +353,10 @@ export const createLinkForSelo = (selo, params) => {
     let refHost = selo.reflectorHost ? '&r=' + selo.reflectorHost : ""
     let sp = params?.p ? '&p=' + params.p : ""
     let sd = params?.d ? '&d=' + params.d : ""
-    let link = 
-    window.location.origin + '/' + selo.app + //+ window.location.search
-    '?k=' + selo.id + refHost + sp + sd
+    let su = params?.u ? '&url=' + params.u : ""
+    let link =
+        window.location.origin + '/' + selo.app + //+ window.location.search
+        '?k=' + selo.id + refHost + sp + sd + su
     return link
 }
 
@@ -175,7 +409,10 @@ export const disconnectSelo = (selo) => {
         //selos[props.seloID]?.disconnect()
         if (Object.keys(selos[seloID]).length == 0) {
             selos[seloID] = undefined
-            if (seloDatas[seloID]) seloDatas[seloID] = undefined
+            if (seloDatas[seloID]) {
+                seloDatas[seloID] = undefined
+                delete seloDatas[seloID]
+            }
         }
 
     }
@@ -228,6 +465,8 @@ export const initSelo = (seloID, root) => {
         reflectorMsg: null,
         syncSig: null,
         syncData: null,
+        syncDataFile: null,
+        syncFromFile: null,
         moniker_: null,
         rapierWorlds: {},
         stateSynced: false,
@@ -335,7 +574,12 @@ export const initSelo = (seloID, root) => {
         if (node && node.setActions[actionName]) {
             node.setActions[actionName](params)
         } else {
-            node.setActions["doesNotUnderstand"]({ action: actionName, params: params })
+            if (!node.setActions["doesNotUnderstand"]) {
+                console.log("ERR: ", node)
+            } else {
+                node.setActions["doesNotUnderstand"]({ action: actionName, params: params })
+            }
+
         }
     }
 
@@ -346,7 +590,11 @@ export const initSelo = (seloID, root) => {
             if (node.setActions[actionName]) {
                 node.setActions[actionName](params)
             } else {
-                node.setActions["doesNotUnderstand"]({ action: actionName, params: params })
+                if (!node.setActions["doesNotUnderstand"]) {
+                    console.log("ERR: ", node)
+                } else {
+                    node.setActions["doesNotUnderstand"]({ action: actionName, params: params })
+                }
             }
         }
     }
@@ -361,7 +609,7 @@ export const initSelo = (seloID, root) => {
                 let [sig, setSig] = createSignal([])
                 s.actions[actionName] = sig
                 s.setActions[actionName] = setSig
-//, { equals: false }
+                //, { equals: false }
             }))
 
             createEffect(on(node.actions[actionName], (params) => {
@@ -449,12 +697,36 @@ export const initRootSelo = (seloID, app, reflectorHost, parentSeloID) => {
     });
 
     createEffect(() => {
+        let sync = seloData.storeVT.syncFromFile;
+        if (sync) {
+            let data = allSaved[seloID]
+            console.log("SYNC from File: ", sync, ' data ', data);
 
-        if (seloData.storeVT.syncReady.length !== 0 
+            if (data) {
+                restoreFromFile(seloID, data.state, data.restoreSeloID)
+                allSaved[seloID] = null
+                delete allSaved[seloID]
+            }
+        }
+    });
+
+    createEffect(() => {
+
+        if (seloData.storeVT.syncReady.length !== 0
             && seloData.storeVT.syncReady.length == seloData.storeVT.stateNodes.length) {
             console.log("Syncing is finsished!: ", seloData.storeVT.syncReady)
-            seloData.vTime.finishSync()
-            seloData.setStoreVT("stateSynced", true)
+            if (seloData.storeVT.syncDataFile !== true) {
+                seloData.vTime.finishSync()
+                seloData.setStoreVT("stateSynced", true)
+            } else {
+                console.log("Syncing from FILE is finished!")
+                let restoreSeloID = seloData.storeVT.rootNode
+                let parentSelo = seloDatas[restoreSeloID ? restoreSeloID : seloData.parentSeloID]
+                if (parentSelo) {
+                    parentSelo.setStoreVT("syncDataFile", { status: "done", client: parentSelo.storeVT.moniker_ })
+                }
+
+            }
         }
 
     })
@@ -464,7 +736,7 @@ export const initRootSelo = (seloID, app, reflectorHost, parentSeloID) => {
         let state = seloData.storeVT.appState//appState;
 
         if (state) {
-  
+
             console.log("Set state: ", state);
 
             let ob = JSON.parse(state[0]);
@@ -496,7 +768,7 @@ export const initRootSelo = (seloID, app, reflectorHost, parentSeloID) => {
         }
     })
 
-    if (!seloDatas[seloID]) 
+    if (!seloDatas[seloID])
         seloDatas[seloID] = seloData
 
     return seloData
@@ -590,20 +862,76 @@ export const deleteSeloInstance = (data, setLocal, selo) => {
 
 }
 
+
+
 export const deleteNode = (data, setLocal, selo) => {
+
+    /// TODO
+    let id = data[0]
+
+    let storeValues = Object.values(unwrap(selo.storeNode.storesRefs))
+
+    const dynamic = optic(values, 'local', 'data', 'dynamic').toArray(storeValues)[0]
+    const clones = optic(values, where({ cloneID: id }), 'nodeID').toArray(dynamic)
+    console.log("find clones: ", clones)
+
+    const meClone = optic(values, where({ nodeID: id }), 'cloneID').toArray(dynamic)
+    const meClones = optic(values, where({ cloneID: meClone[0] }), 'nodeID').toArray(dynamic)
+    console.log("find me clones: ", meClones)
 
     setLocal(
         produce((s) => {
-            let node = s.data.dynamic.filter(el => el.nodeID == data[0])[0];
-            let index = s.data.dynamic.indexOf(node);
-            s.data.dynamic.splice(index, 1);
+            if (s.data.dynamic) {
+                let node = s.data.dynamic.filter(el => el.nodeID == data[0])[0];
+                if (node) {
+                    let index = s.data.dynamic.indexOf(node);
+                    s.data.dynamic.splice(index, 1)
+                }
+            }
         }))
 
-    selo.setStoreNode(
-        produce((s) => {
-            if (s.storesRefs[data[0]])
-                s.storesRefs[data[0]] = undefined
-        }))      
+
+    if (meClone.length == 1 && typeof meClone[0] !== "symbol" && meClones.length == 1) {
+        let sL = selo.getSetNodeByID(meClone[0])
+
+        if (dynamic.filter(el => meClone[0].includes(el.nodeID)).length == 0)
+            deleteNode([meClone[0]], sL, selo)
+    }
+
+
+    if (clones.length > 0) {
+
+        console.log("clones ", clones)
+
+        clones.forEach(el => {
+
+            console.log("clone ", el, ' for ', data[0])
+
+            let nc = selo.getNodeByID(el)
+            if (nc) {
+                let sL = selo.getSetNodeByID(nc.data.properties.parentID)
+                if (el !== data[0]) {
+                    deleteNode([el], sL, selo)
+                }
+            }
+        })
+    }
+
+    //if(!clones.includes(data[0]))
+
+    if (clones.length == 0) {
+        selo.setStoreNode(
+            produce((s) => {
+                if (s.storesRefs[data[0]])
+                    s.storesRefs[data[0]] = undefined
+            }))
+
+        selo.setStoreNode(
+            produce((s) => {
+                if (s.localStores[data[0]])
+                    s.localStores[data[0]] = undefined
+            }))
+    }
 
 }
 
@@ -719,16 +1047,16 @@ const init = function (obj) {
 
             //Rapier serialization
 
-        let world = untrack(()=>obj.selo.storeVT.rapierWorlds[localSt.data.nodeID])
-          if (world && localSt.data.rapierWorldState) {
-            console.log("Rapier world serialization: ", world)
-            let serializeWorld = world.takeSnapshot()
+            let world = untrack(() => obj.selo.storeVT.rapierWorlds[localSt.data.nodeID])
+            if (world && localSt.data.rapierWorldState) {
+                console.log("Rapier world serialization: ", world)
+                let serializeWorld = world.takeSnapshot()
 
-            obj.setLocal(produce(s => {
-                s.data.rapierWorldState = serializeWorld
-                //localSt.rapierWorld = {}
-            }))
-        }
+                obj.setLocal(produce(s => {
+                    s.data.rapierWorldState = serializeWorld
+                    //localSt.rapierWorld = {}
+                }))
+            }
 
             console.log("Store child: ", obj.nodeID);
             obj.selo.setStoreNode(
@@ -740,6 +1068,19 @@ const init = function (obj) {
                 })
             );
             //obj.selo.setStoreVT("syncSig", false)
+        }
+    })
+
+
+    createEffect(() => {
+        if (obj.selo.storeVT.syncDataFile && !obj.selo.storeVT.syncDataFile.status) {
+            console.log("RESTORE child: ", obj.nodeID);
+            if (obj.selo.storeNode.restoreDATA[obj.nodeID]) {
+                obj.setLocal('data', reconcile(obj.selo.storeNode.restoreDATA[obj.nodeID]?.local.data));
+                obj.selo.setStoreVT(produce(s => {
+                    s.syncReady.push(obj.nodeID)
+                }))
+            }
         }
     })
 
@@ -757,7 +1098,7 @@ const init = function (obj) {
 
     createEffect(() => {
 
-        if (obj.selo.storeVT.stateSynced && obj.selo.storeVT.moniker_) { 
+        if (obj.selo.storeVT.stateSynced && obj.selo.storeVT.moniker_) {
             setTimeout(() => {
                 obj.selo.future(obj.nodeID, "preInitialize", 0, obj.selo.storeVT.moniker_)
             }, 0)
@@ -845,7 +1186,7 @@ const init = function (obj) {
     }
 
     const createDynamicNode = (data) => {
-        createNode(obj.selo, obj.setLocal, "first", data[0])
+        createNode(obj.selo, obj.setLocal, "last", data[0])
     }
 
     const deleteDynamicNode = (data) => {
@@ -860,6 +1201,14 @@ const init = function (obj) {
         obj.selo.createAction(obj.nodeID, "deleteSelo", deleteSelo)
 
     }
+
+    // Cleanup Nodes
+    onCleanup(() => {
+        console.log("Delete Node: ", obj.nodeID)
+        //if(obj.local.data.component !== "AppCreator" && obj.local.data.component !== "Portal")
+        deleteNode([obj.nodeID], obj.setLocal, obj.selo)
+    });
+
 
 }
 

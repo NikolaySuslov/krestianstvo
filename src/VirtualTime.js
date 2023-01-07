@@ -153,6 +153,7 @@ export const initTime = (socket, storeID, seloData) => {
 
             if (actionName == 'getState') {
                 console.log("Get State!");
+                setStoreNode("localStores", {})
 
                 setStoreVT("syncSig", true); 
 

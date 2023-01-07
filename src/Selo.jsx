@@ -28,6 +28,11 @@ export default function Selo(props) {
 
     onMount(()=>{
         console.log("Selo mounted: ", props.seloID)
+        setTimeout(()=>{
+            seloData.id ? seloData.setStoreVT("syncFromFile", true) : null
+        },0)
+
+
     })
 
     return (seloProps.deep > deepCount) ? null : (
