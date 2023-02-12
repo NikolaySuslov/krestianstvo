@@ -17,8 +17,6 @@ import QrCreator from 'qr-creator';
 import { where, maybe, optic, values } from 'optics.js/index'
 //import * as R from 'rambda'
 
-import { serializeGraph } from "./lib/dev"
-
 
 const validIDChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -994,13 +992,15 @@ export const createLocalStore = (obj, props) => {
     } else {
         console.log("Created new: ", props.nodeID)
         const [n, sN] = createStore(obj)
-        init({
+
+        let component = {
             selo: props.selo,
             local: n,
             setLocal: sN,
             nodeID: props.nodeID,
-        })
-        return [n, sN]
+        }
+        init(component)
+        return [n, sN, component]
     }
 
 }
@@ -1044,6 +1044,8 @@ const init = function (obj) {
             let localSt = unwrap(obj.local);
             // localSt.actions = {};
             // localSt.setActions = {};
+            if(obj.internals.prng)
+                localSt.data.random = obj.internals.prng.exportState()
 
             //Rapier serialization
 
@@ -1086,9 +1088,9 @@ const init = function (obj) {
 
     createEffect(() => {
         if (obj.selo.storeVT.syncData) {
-            console.log("RESTORE child: ", obj.nodeID);
             if (obj.selo.storeNode.localStores[obj.nodeID]) {
                 obj.setLocal('data', reconcile(obj.selo.storeNode.localStores[obj.nodeID]?.local.data));
+                console.log("RESTORE child: ", obj.local.data);
                 obj.selo.setStoreVT(produce(s => {
                     s.syncReady.push(obj.nodeID)
                 }))
@@ -1128,6 +1130,27 @@ const init = function (obj) {
         setLocal: obj.setLocal
     });
 
+    obj.internals = {}
+    let seed = obj.selo.storeNode.configuration.randomseed + obj.nodeID
+    obj.setLocal("data", "random", seed)
+
+    createEffect(() => {
+        let randomState = obj.local.data.random
+        if (randomState) {
+            let prng = obj.internals.prng
+            if (prng) {
+                obj.internals.prng.importState(randomState)
+            } else {
+                const newPrng = new Alea(randomState)
+                if(randomState instanceof Array){
+                    newPrng.importState(randomState)
+                } 
+                obj.internals.prng = newPrng
+            }
+        }
+    })
+
+
     obj.setLocal("actions", {})
     obj.setLocal("setActions", {})
 
@@ -1149,10 +1172,20 @@ const init = function (obj) {
 
     }
 
+    obj.random = () => {
+        let rand = obj.internals.prng()
+        //console.log("Random: ", rand)
+        return rand
+    }
+    
+    obj.future = (msgName, when, value) => {
+        obj.selo.future(obj.nodeID, msgName, when, value)
+    }
+
     obj.selo.createAction(obj.nodeID, "doesNotUnderstand", doesNotUnderstand)
     obj.selo.createAction(obj.nodeID, "setProperty", setProperty)
     obj.selo.createAction(obj.nodeID, "preInitialize", preInitialize)
-
+    obj.selo.createAction(obj.nodeID, "random", obj.random)
 
     const createSelo = (data) => {
 
@@ -1228,7 +1261,7 @@ const getCircularReplacer = () => {
 
 export const getGraph = (owner) => {
 
-    let devData = serializeGraph(owner) //DEV.serializeGraph(owner);
+    let devData = DEV.serializeGraph(owner) //DEV.serializeGraph(owner);
     let data = JSON.stringify(
         devData,
         //null,

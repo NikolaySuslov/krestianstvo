@@ -129,8 +129,21 @@ export const initTime = (socket, storeID, seloData) => {
     data.stateQueue = () => {
         return {
             time: data.time,
-            queue: transform(data.queue._list, data.queueTransitTransformation),
+            queue: data.transformQueueList() //transform(data.queue._list, data.queueTransitTransformation),
         }
+
+    }
+
+    data.transformQueueList = () => {
+
+        return data.queue._list.filter(el => el !== 0).filter((fields) => {
+            return !(fields.origin === "reflector" && fields.sequence > data.sequence_) && fields.action; // TODO: fields.action is here to filter out tick messages  // TODO: don't put ticks on the queue but just use them to fast-forward to the current time (requires removing support for passing ticks to the drivers and nodes)
+        }).sort(function (fieldsA, fieldsB) {
+            return fieldsA.sequence - fieldsB.sequence;
+        }).map(el => {
+            el.sequence ? delete el.sequence : null
+            return el
+        })
 
     }
 
@@ -155,7 +168,7 @@ export const initTime = (socket, storeID, seloData) => {
                 console.log("Get State!");
                 setStoreNode("localStores", {})
 
-                setStoreVT("syncSig", true); 
+                setStoreVT("syncSig", true);
 
                 if (storeNode.localSelos[storeID]) {
                     Object.keys(storeNode.localSelos[storeID]).forEach(key => {
@@ -273,7 +286,7 @@ export const initTime = (socket, storeID, seloData) => {
             node: nodeID,
             action: actionName,
             member: memberName,
-            parameters: parameters 
+            parameters: parameters
             // callback: callback_async,  // TODO: provisionally add fields to queue (or a holding queue) then execute callback when received back from reflector
         };
 
@@ -297,8 +310,8 @@ export const initTime = (socket, storeID, seloData) => {
             node: nodeID,
             action: actionName,
             member: memberName,
-            parameters: parameters, 
-            result: result 
+            parameters: parameters,
+            result: result
         };
 
         // Send the message.
@@ -320,7 +333,7 @@ export const initTime = (socket, storeID, seloData) => {
         const parameters = [data.now];
 
         // setStoreNode("tock", parameters[0])
- 
+
     }
 
     data.getNow = () => {
@@ -346,7 +359,7 @@ export const initTime = (socket, storeID, seloData) => {
         let obj = {
             "clients": storeNode.clients,
             "configuration": storeNode.configuration,
-            "localStores": storeNode.localStores
+            "localStores": unwrap(storeNode.localStores)
         }
 
         let graph = JSON.stringify(
@@ -487,7 +500,7 @@ export const initTime = (socket, storeID, seloData) => {
 
         data.plan(nodeID, msgName, undefined,
             [value], when, undefined /* result */);
-       
+
     }
 
     function sendExtMsg(msgName, value, when, nodeID, seloID) {
@@ -497,49 +510,10 @@ export const initTime = (socket, storeID, seloData) => {
             params, when || 0, undefined /* result */);
     }
 
-
-    data.queueTransitTransformation = (object, names, depth) => {
-
-        if (depth == 0) {
-
-            // Omit any private direct messages for this client, then sort by arrival order
-            // (rather than by time) so that messages will retain the same arrival order when
-            // reinserted.
-
-            return object.filter(el => el !== 0).filter((fields) => {
-
-                return !(fields.origin === "reflector" && fields.sequence > data.sequence_) && fields.action; // TODO: fields.action is here to filter out tick messages  // TODO: don't put ticks on the queue but just use them to fast-forward to the current time (requires removing support for passing ticks to the drivers and nodes)
-            }).sort(function (fieldsA, fieldsB) {
-                return fieldsA.sequence - fieldsB.sequence;
-            });
-
-        } else if (depth == 1) {
-
-            // Remove the sequence fields since they're just local annotations used to keep
-            // messages ordered by insertion order and aren't directly meaniful outside of this
-            // client.
-
-            var filtered = {};
-
-            Object.keys(object).filter(function (key) {
-                return key != "sequence";
-            }).forEach(function (key) {
-                filtered[key] = object[key];
-            });
-
-            return filtered;
-
-        }
-
-        return object;
-    }
-
     datas[storeID] = data
-
     seloData.vTime = data
 
     return data
-
 }
 
 const queueSort = (a, b) => {
@@ -571,85 +545,7 @@ const queueSort = (a, b) => {
 
 }
 
-const data = (id) => {
+
+export function getTimeData (id) {
     return datas[id]
-}
-
-
-const transform = (object, transformation /* ( object, names, depth, finished ) */, names, depth) => {
-
-    names = names || [];
-    depth = depth || 0;
-
-    var finished = false, item;
-
-    var result = object = transformation(object, names, depth, function () { finished = true });
-
-    if (typeof object === "object" && object !== null && !finished) {
-
-        if (object instanceof Array) {
-
-            // Recursively transform the elements if the object is an Array.
-
-            for (var index = 0; index < object.length; index++) {
-
-                if ((item = transform(object[index], transformation,
-                    [index].concat(names), depth + 1)) !== object[index]) {
-
-                    // If the item changed, and it's the first change in the array, then
-                    // duplicate the array.
-
-                    if (result === object) {
-                        result = [].concat(object);  // shallow copy into a new Array
-                    }
-
-                    // Assign the transformed item.
-
-                    result[index] = item;
-                }
-            }
-
-        } else {
-
-            // Recursively transform the properties if the object is an Object.
-
-            Object.keys(object).forEach((key) => {
-
-                if ((item = transform(object[key], transformation,
-                    [key].concat(names), depth + 1)) !== object[key]) {
-
-                    // If the item changed, and it's the first change in the object, then
-                    // duplicate the object.
-
-                    if (result === object) {
-
-                        result = {};
-
-                        Object.keys(object).forEach((k) => {
-                            result[k] = object[k];  // shallow copy into a new Object
-                        });
-
-                        // Also copy the non-enumerable `length` property for an `arguments`
-                        // object.
-
-                        var lengthDescriptor = Object.getOwnPropertyDescriptor(object, "length");
-
-                        if (lengthDescriptor && !lengthDescriptor.enumerable) {
-                            Object.defineProperty(result, "length", lengthDescriptor);
-                        }
-
-                    }
-
-                    // Assign the transformed item.
-
-                    result[key] = item;
-                }
-
-            });
-
-        }
-
-    }
-
-    return result;
 }
