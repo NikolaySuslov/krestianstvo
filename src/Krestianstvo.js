@@ -664,9 +664,10 @@ export const initRootSelo = (seloID, app, reflectorHost, parentSeloID) => {
     }
 
     const connection = connect(connObj, seloID, seloData, reflectorHost)
-    const vTime = initTime(connection.socket, seloID, seloData)
+    const vTime = initTime(connection, seloID, seloData)
 
-    seloData.reflectorHost = connection.socket.io.uri
+    seloData.reflectorHost = connection.host
+    seloData.wsState = connection.state
 
     console.log("Connection: ", connection)
     console.log("VirtualTime: ", vTime)
@@ -805,6 +806,7 @@ const dispatchApp = function (msg, id, selo) {
             console.log("add client: ", msg.parameters[1])
 
             setTimeout(() => {
+
                 selo.setStoreNode(
                     produce((s) => {
                         let clientID = msg.parameters[1]

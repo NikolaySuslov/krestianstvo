@@ -1,6 +1,6 @@
 {
   "name": "krestianstvo",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "files": [
     "dist"
   ],
@@ -25,16 +25,17 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "solid-js": "^1.6.10",
-    "vite": "^4.1.1",
-    "vite-plugin-solid": "^2.5.0"
+    "solid-js": "^1.7.6",
+    "vite": "^4.3.9",
+    "vite-plugin-solid": "^2.7.0"
   },
   "dependencies": {
+    "@solid-primitives/event-listener": "^2.2.13",
+    "@solid-primitives/websocket": "^1.1.0",
     "alea": "^1.0.1",
     "optics.js": "^2.4.0",
     "qheap": "^1.4.0",
     "qr-creator": "^1.0.0",
-    "socket.io-client": "^4.6.0",
     "uuid": "^9.0.0"
   },
   "peerDependencies": {

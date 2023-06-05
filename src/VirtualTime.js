@@ -14,16 +14,19 @@ import { produce, unwrap } from "solid-js/store";
 
 const datas = {}
 
-export const initTime = (socket, storeID, seloData) => {
+export const initTime = (connection, storeID, seloData) => {
 
     const storeNode = seloData.storeNode,
         setStoreNode = seloData.setStoreNode,
         storeVT = seloData.storeVT,
         setStoreVT = seloData.setStoreVT,
-        randomGen = seloData.randomGen
+        randomGen = seloData.randomGen,
+        socket = connection.socket,
+        message = connection.message
 
 
     const data = {
+        connection: connection,
         socket: socket,
         owner: null,
         queue: new Heap({
@@ -487,10 +490,10 @@ export const initTime = (socket, storeID, seloData) => {
 
     createEffect(() => {
 
-        let msg = unwrap(storeVT.socketMsg)
+        let msg = message()
         if (msg) {
             queueMicrotask(() =>
-                data.insert(msg[0], msg[1])
+                data.insert(msg, !msg.action)
             )
         }
     })
