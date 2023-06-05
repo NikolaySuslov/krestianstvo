@@ -30,7 +30,8 @@ Getting all the benefits from Functional Reactive Paradigm (FRP), **Krestianstvo
 |---------------------|------------|-------------|--------------------|---|
 | [krestianstvo](https://github.com/NikolaySuslov/krestianstvo) | JavaScript | Solid JS | active development | |
 | [krestianstvo-s.js](https://github.com/NikolaySuslov/krestianstvo-s.js) | JavaScript | S.js | prototype | |
-| [krestianstvo-rust](https://github.com/NikolaySuslov/krestianstvo-rust) | Rust | Sycamore | in work | |
+| [krestianstvo-electric](https://github.com/NikolaySuslov/krestianstvo-electric) | Clojure | Electric | prototype | |
+| [krestianstvo-rust](https://github.com/NikolaySuslov/krestianstvo-rust) | Rust | Leptos | in work | |
 | [krestianstvo-swift](https://github.com/NikolaySuslov/krestianstvo-swift) | Swift | Bow-Swift | future work | |
 | [krestianstvo-squeak](https://github.com/NikolaySuslov/krestianstvo-squeak) | Smalltalk | S.Squeak | future work | |
 
