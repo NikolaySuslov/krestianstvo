@@ -13,6 +13,8 @@
 
 **https://docs.krestianstvo.org**  
 
+**Q&A** [Discord channel](https://discord.gg/qk6MMDUcnY)
+
 
 Krestianstvo SDK 4 is mainly developed using **[Solid JS](https://www.solidjs.com)** with the prototype in [S.JS](https://github.com/NikolaySuslov/krestianstvo-s.js). Other implementations are also underway for Rust, Swift and Squeak Smalltalk programming languages.
 
