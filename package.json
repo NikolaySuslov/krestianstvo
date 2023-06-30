@@ -30,6 +30,7 @@
     "vite-plugin-solid": "^2.7.0"
   },
   "dependencies": {
+    "@paralleldrive/cuid2": "^2.2.1",
     "@solid-primitives/event-listener": "^2.2.13",
     "@solid-primitives/websocket": "^1.1.0",
     "alea": "^1.0.1",

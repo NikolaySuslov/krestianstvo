@@ -11,10 +11,13 @@ import { produce } from "solid-js/store";
 import { createWS, createWSState } from "@solid-primitives/websocket";
 import { createEventSignal } from "@solid-primitives/event-listener";
 import { createEffect, on } from "solid-js";
-import { createStore } from "solid-js/store";
-import { v4 as uuidv4 } from 'uuid';
+import { init } from '@paralleldrive/cuid2'
 
 const connections = {}
+
+const createId = init({
+    length: 10
+  })
 
 export const connect = function (path, storeID, seloData, hostURL) {
 
@@ -26,7 +29,7 @@ export const connect = function (path, storeID, seloData, hostURL) {
 
     const host = hostURL ? hostURL : conf.defaultReflectorHost
     let objToRef = path ? path : { "loadInfo": {}, "path": { "application": "index.vwf", "instance": "O4t2lsAgzKtJoxkH", "public_path": "/empty" }, "user": "w" }
-    let moniker_ = uuidv4();
+    let moniker_ = createId();
     let query = `pathname=w&appRoot=./public&moniker=` + moniker_ + `&path=` + JSON.stringify(objToRef)
 
     //let host = "wss://localhost:3001"

@@ -8,7 +8,7 @@ import { createSignal, createEffect, createMemo, createRoot, getOwner, createRea
 import { createStore, reconcile, produce, unwrap } from "solid-js/store";
 import { connect } from './ReflectorClient'
 
-import { v4 as uuidv4 } from 'uuid';
+import { createId } from '@paralleldrive/cuid2'
 import { v5 as uuidv5 } from 'uuid';
 import { initTime } from './VirtualTime'
 import Alea from 'alea/alea.js'
@@ -16,9 +16,6 @@ import QrCreator from 'qr-creator';
 
 import { where, maybe, optic, values } from 'optics.js/index'
 //import * as R from 'rambda'
-
-
-const validIDChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 const selos = {}
 const seloDatas = {}
@@ -101,11 +98,11 @@ const replaceSeloIDinState = (r, newMap) => {
 export const replaceURLs = (states) => {
 
     let newMap = []
-    let rootID = uuidv4();
+    let rootID = createId();
     newMap.push({ id: states.root.root.id, newID: rootID })
 
     Object.values(states.all).forEach(el => {
-        let newID = uuidv4()
+        let newID = createId();
         newMap.push({ id: el.id, newID: newID })
     })
     console.log(newMap);
@@ -551,20 +548,7 @@ export const initSelo = (seloID, root) => {
     }
 
     const randomID = () => {
-
-        var S4 = function () {
-            return Math.floor(
-                random() * 0x10000 /* 65536 */
-            ).toString(16);
-        };
-
-        return (
-            S4() + S4() + "-" +
-            S4() + "-" +
-            S4() + "-" +
-            S4() + "-" +
-            S4() + S4() + S4()
-        );
+        return uuidv5(random().toString(), uuidv5.URL);
     }
 
     const callActionNode = (node, actionName, params) => {
@@ -675,7 +659,7 @@ export const initRootSelo = (seloID, app, reflectorHost, parentSeloID) => {
     //Store selos in global dict
     selos[seloID] ? selos[seloID] : selos[seloID] = {} //= connection
 
-    let clientSeloID = uuidv4();
+    let clientSeloID = createId();;
     seloData.clientSeloID = clientSeloID
     selos[seloID][clientSeloID] = connection
 
@@ -806,11 +790,10 @@ const dispatchApp = function (msg, id, selo) {
             console.log("add client: ", msg.parameters[1])
 
             setTimeout(() => {
-
                 selo.setStoreNode(
                     produce((s) => {
                         let clientID = msg.parameters[1]
-                        //if(!s.clients.includes(clientID))
+                        if(!s.clients.includes(clientID))
                         s.clients.push(clientID);
                     })
                 )
@@ -940,20 +923,7 @@ export const shortRandomIDInView = function () {
 }
 
 export const randomID = (selo) => {
-
-    var S4 = function () {
-        return Math.floor(
-            selo.random() * 0x10000 /* 65536 */
-        ).toString(16);
-    };
-
-    return (
-        S4() + S4() + "-" +
-        S4() + "-" +
-        S4() + "-" +
-        S4() + "-" +
-        S4() + S4() + S4()
-    );
+    return uuidv5(selo.random().toString(), uuidv5.URL);
 }
 
 export const createNode = (selo, setLocal, order, obj) => {
@@ -1275,11 +1245,6 @@ export const getGraph = (owner) => {
 }
 
 export const generateInstanceID = () => {
-    var text = "";
-
-    for (var i = 0; i < 16; i++)
-        text += validIDChars.charAt(Math.floor(Math.random() * validIDChars.length));
-
-    return text;
+    return createId()
 }
 
